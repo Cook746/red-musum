@@ -4490,30 +4490,4 @@ function changeWindowSize(size) {
 
 // 页面加载
 setTimeout(addAIAssistant, 2000);
-// ============================================
-// 添加预览框容器
-// ============================================
-function addPreviewContainer() {
-    const mapContainer = document.getElementById('mapContainer');
-    if (!mapContainer) return;
-    
-    if (!document.getElementById('locationPreview')) {
-        const preview = document.createElement('div');
-        preview.id = 'locationPreview';
-        preview.style.cssText = `
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: white;
-            border-radius: 10px;
-            padding: 15px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-            z-index: 999;
-            max-width: 300px;
-            display: none;
-            border-left: 4px solid #b71c1c;
-            pointer-events: none;
-        `;
-        mapContainer.appendChild(preview);
-    }
 }
