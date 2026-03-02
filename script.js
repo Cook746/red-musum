@@ -130,7 +130,10 @@ let userProgress = {
     completedTasks: [],
     visitedArtifacts: [],
     collectedAchievements: [],
-    lastVisit: new Date().toISOString()
+    lastVisit: new Date().toISOString(),
+    mapLocations: {
+        visited: []  // 添加地图地点访问记录
+    }
 };
 
 // 检查本地是否有保存的学习进度
@@ -138,6 +141,10 @@ function loadUserProgress() {
     const saved = localStorage.getItem('redMuseumProgress');
     if (saved) {
         userProgress = JSON.parse(saved);
+        // 确保mapLocations存在
+        if (!userProgress.mapLocations) {
+            userProgress.mapLocations = { visited: [] };
+        }
         console.log('已加载用户学习进度');
     }
 }
@@ -2692,6 +2699,10 @@ function initAMap() {
 // 创建美观标记（包含所有功能）
 // ============================================
 function createBeautifulMarker(location) {
+    // 添加安全检查
+    if (!userProgress.mapLocations) {
+        userProgress.mapLocations = { visited: [] };
+    }
     const isVisited = userProgress.mapLocations.visited.includes(location.id);
     
     // 标记HTML样式（美观部分）
