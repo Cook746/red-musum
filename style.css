@@ -3533,3 +3533,123 @@ body {
     background: #2980b9;
     transform: translateY(-2px);
 }
+/* ============================================
+   手机端导航栏优化
+============================================ */
+
+/* 当屏幕宽度小于768px时 */
+@media (max-width: 768px) {
+    /* 导航栏容器 */
+    .main-nav {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background-color: #2c3e50;
+        padding: 0.5rem 0;
+    }
+    
+    /* 导航链接容器 - 改为横向滚动 */
+    .nav-container {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch; /* 流畅滚动 */
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        scrollbar-width: thin; /* 滚动条变细 */
+        scrollbar-color: #b71c1c #2c3e50;
+        white-space: nowrap;
+        justify-content: flex-start;
+        align-items: center;
+    }
+    
+    /* 滚动条样式（Chrome/Safari） */
+    .nav-container::-webkit-scrollbar {
+        height: 3px;
+    }
+    
+    .nav-container::-webkit-scrollbar-thumb {
+        background-color: #b71c1c;
+        border-radius: 3px;
+    }
+    
+    .nav-container::-webkit-scrollbar-track {
+        background-color: #2c3e50;
+    }
+    
+    /* 导航链接 - 减小内边距 */
+    .nav-link {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        flex-shrink: 0; /* 防止压缩 */
+        background-color: rgba(255,255,255,0.1);
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    /* 导航链接悬停效果调整（移动端用点击代替） */
+    .nav-link:hover {
+        transform: none;
+        background-color: #b71c1c;
+    }
+    
+    /* 首页标题 - 减小字体 */
+    .site-title {
+        font-size: 1.8rem;
+        line-height: 1.2;
+        margin-bottom: 0.3rem;
+    }
+    
+    .site-subtitle {
+        font-size: 1rem;
+        padding: 0 1rem;
+    }
+    
+    /* 主要内容区域 - 增加上边距避免被导航栏遮挡 */
+    .main-content {
+        margin-top: 0;
+        padding-top: 10px;
+    }
+    
+    /* 每个区块 - 减小内边距 */
+    .section {
+        padding: 1.2rem;
+        margin-bottom: 1.2rem;
+    }
+    
+    /* 修复 sticky 导航栏可能遮挡标题的问题 */
+    .section-title {
+        scroll-margin-top: 70px; /* 点击锚点链接时，避开导航栏 */
+    }
+}
+
+/* 更小屏幕的优化 */
+@media (max-width: 480px) {
+    .nav-link {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.85rem;
+    }
+    
+    .nav-container {
+        gap: 0.3rem;
+        padding: 0.5rem 0.5rem;
+    }
+    
+    /* 隐藏部分不常用的导航链接（可选） */
+    .nav-link.nav-feedback,
+    .nav-link.nav-about {
+        display: none;  /* 隐藏反馈和关于，可以在二级菜单中显示 */
+    }
+}
+
+/* 超小屏幕 - 显示更少的导航项 */
+@media (max-width: 360px) {
+    .nav-link.nav-resources,
+    .nav-link.nav-progress {
+        display: none;  /* 隐藏资源库和进度 */
+    }
+}
