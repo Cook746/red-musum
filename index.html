@@ -32,13 +32,14 @@
             <!-- 未登录状态 -->
             <div id="notLoggedIn" class="not-logged-in">
                 <button onclick="showAuthModal()" class="login-btn-enhanced">
-                    <span class="login-icon">👤</span>
-                    <span class="login-text">登录</span>
-                    <span class="login-arrow">→</span>
-                </button>
-                <button onclick="showAuthModal(); setTimeout(() => switchAuthMode('register'), 100);" class="register-btn-enhanced">
-                    注册
-                </button>
+                 <span class="login-icon">👤</span>
+                 <span class="login-text">登录</span>
+                <span class="login-arrow">→</span>
+                   </button>
+
+<button onclick="showAuthModal(); switchAuthMode('register')" class="register-btn-enhanced">
+    注册
+</button>
             </div>
             
             <!-- 已登录状态 -->

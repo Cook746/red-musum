@@ -1,4 +1,442 @@
+// ===== 新增：登录系统代码（添加在这里）=====
 
+// ============================================
+// 用户认证系统
+// ============================================
+
+// 用户数据库（存在localStorage中）
+let users = [];
+
+// 当前登录用户
+let currentUser = null;
+
+// 初始化用户系统
+function initAuthSystem() {
+    // 从本地存储加载用户数据
+    const savedUsers = localStorage.getItem('redMuseumUsers');
+    if (savedUsers) {
+        users = JSON.parse(savedUsers);
+    } else {
+        // 添加默认管理员账号（方便测试）
+        users = [
+            {
+                id: 1,
+                username: 'admin',
+                password: 'admin123',
+                createdAt: new Date().toISOString(),
+                lastLogin: null,
+                progress: {
+                    completedTasks: [],
+                    visitedArtifacts: [],
+                    collectedAchievements: [],
+                    learningHistory: [],
+                    mapLocations: { visited: [] }
+                }
+            },
+            {
+                id: 2,
+                username: 'test',
+                password: 'test123',
+                createdAt: new Date().toISOString(),
+                lastLogin: null,
+                progress: {
+                    completedTasks: [],
+                    visitedArtifacts: [],
+                    collectedAchievements: [],
+                    learningHistory: [],
+                    mapLocations: { visited: [] }
+                }
+            }
+        ];
+        saveUsers();
+    }
+    
+    // 检查是否有记住登录
+    const savedSession = localStorage.getItem('redMuseumSession');
+    if (savedSession) {
+        const session = JSON.parse(savedSession);
+        const user = users.find(u => u.id === session.userId);
+        if (user) {
+            currentUser = user;
+            updateUIForLoggedInUser();
+        }
+    }
+}
+
+// 保存用户数据
+function saveUsers() {
+    localStorage.setItem('redMuseumUsers', JSON.stringify(users));
+}
+
+// 显示登录模态框
+function showAuthModal() {
+    document.getElementById('authModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+// 关闭登录模态框
+function closeAuthModal() {
+    document.getElementById('authModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+// 切换登录/注册模式
+function switchAuthMode(mode) {
+    console.log('switchAuthMode 被调用', mode);
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const authTitle = document.getElementById('authTitle');
+    const switchBtn = document.getElementById('authSwitchBtn');
+    const switchText = document.getElementById('authSwitchText');
+    
+    if (mode === 'register' || loginForm.style.display !== 'none') {
+        // 切换到注册
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+        authTitle.textContent = '注册';
+        switchText.textContent = '已有账号？';
+        switchBtn.textContent = '立即登录';
+    } else {
+        // 切换到登录
+        loginForm.style.display = 'block';
+        registerForm.style.display = 'none';
+        authTitle.textContent = '登录';
+        switchText.textContent = '还没有账号？';
+        switchBtn.textContent = '立即注册';
+    }
+}
+
+// 处理登录
+function handleLogin(event) {
+    event.preventDefault();
+    
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    
+    // 查找用户
+    const user = users.find(u => u.username === username && u.password === password);
+    
+    if (user) {
+        // 登录成功
+        currentUser = user;
+        user.lastLogin = new Date().toISOString();
+        saveUsers();
+        
+        // 保存会话
+        localStorage.setItem('redMuseumSession', JSON.stringify({
+            userId: user.id,
+            loginTime: new Date().toISOString()
+        }));
+        
+        // 更新界面
+        updateUIForLoggedInUser();
+        closeAuthModal();
+        
+        // 显示欢迎消息
+        showAuthMessage(`欢迎回来，${user.username}！`, 'success');
+    } else {
+        // 登录失败
+        showAuthMessage('用户名或密码错误', 'error');
+    }
+}
+
+// 处理注册
+function handleRegister(event) {
+    event.preventDefault();
+    
+    const username = document.getElementById('regUsername').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const confirmPassword = document.getElementById('regConfirmPassword').value;
+    
+    // 验证用户名
+    if (username.length < 4 || username.length > 20) {
+        showAuthMessage('用户名必须在4-20个字符之间', 'error');
+        return;
+    }
+    
+    // 验证密码
+    if (password.length < 6 || password.length > 20) {
+        showAuthMessage('密码必须在6-20个字符之间', 'error');
+        return;
+    }
+    
+    // 验证密码一致性
+    if (password !== confirmPassword) {
+        showAuthMessage('两次输入的密码不一致', 'error');
+        return;
+    }
+    
+    // 检查用户名是否已存在
+    if (users.some(u => u.username === username)) {
+        showAuthMessage('用户名已存在', 'error');
+        return;
+    }
+    
+    // 创建新用户
+    const newUser = {
+        id: users.length + 1,
+        username: username,
+        password: password,
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString(),
+        progress: {
+            completedTasks: [],
+            visitedArtifacts: [],
+            collectedAchievements: [],
+            learningHistory: [],
+            mapLocations: { visited: [] }
+        }
+    };
+    
+    users.push(newUser);
+    saveUsers();
+    
+    // 自动登录
+    currentUser = newUser;
+    localStorage.setItem('redMuseumSession', JSON.stringify({
+        userId: newUser.id,
+        loginTime: new Date().toISOString()
+    }));
+    
+    // 更新界面
+    updateUIForLoggedInUser();
+    closeAuthModal();
+    
+    showAuthMessage('注册成功！欢迎加入红色文化学习社区', 'success');
+}
+
+// 退出登录
+function logout() {
+    currentUser = null;
+    localStorage.removeItem('redMuseumSession');
+    
+    // 重置为用户进度
+    location.reload();
+}
+
+// 更新登录后的UI
+function updateUIForLoggedInUser() {
+    const loginBtn = document.getElementById('loginBtn');
+    const userWelcome = document.getElementById('userWelcome');
+    const usernameSpan = document.getElementById('username');
+    
+    if (currentUser && loginBtn && userWelcome && usernameSpan) {
+        loginBtn.style.display = 'none';
+        userWelcome.style.display = 'inline';
+        usernameSpan.textContent = currentUser.username;
+    }
+}
+
+// 显示认证消息
+function showAuthMessage(message, type = 'info') {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `auth-message ${type}`;
+    messageDiv.innerHTML = `
+        <div class="message-content">
+            <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(messageDiv);
+    
+    setTimeout(() => {
+        messageDiv.style.opacity = '0';
+        setTimeout(() => messageDiv.remove(), 300);
+    }, 3000);
+}
+
+// 添加认证消息样式
+const authMessageStyle = document.createElement('style');
+authMessageStyle.textContent = `
+    .auth-message {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        z-index: 10001;
+        animation: slideInRight 0.3s ease;
+        border-left: 4px solid #b71c1c;
+    }
+    
+    .auth-message.success {
+        border-left-color: #27ae60;
+    }
+    
+    .auth-message.error {
+        border-left-color: #e74c3c;
+    }
+    
+    .message-content {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+`;
+document.head.appendChild(authMessageStyle);
+
+// 在页面加载时初始化认证系统
+document.addEventListener('DOMContentLoaded', function() {
+    // 延迟执行，确保其他元素已加载
+    setTimeout(() => {
+        initAuthSystem();
+    }, 500);
+});
+// ============================================
+// 美化登录选项的额外功能
+// ============================================
+
+// 切换用户菜单显示/隐藏
+function toggleUserMenu() {
+    const menu = document.getElementById('userMenu');
+    if (menu) {
+        if (menu.style.display === 'none' || menu.style.display === '') {
+            menu.style.display = 'block';
+            // 点击其他地方关闭菜单
+            setTimeout(() => {
+                document.addEventListener('click', closeUserMenuOnClickOutside);
+            }, 100);
+        } else {
+            menu.style.display = 'none';
+        }
+    }
+}
+
+// 点击外部关闭菜单
+function closeUserMenuOnClickOutside(event) {
+    const menu = document.getElementById('userMenu');
+    const profile = document.querySelector('.user-profile');
+    
+    if (menu && profile && !profile.contains(event.target) && !menu.contains(event.target)) {
+        menu.style.display = 'none';
+        document.removeEventListener('click', closeUserMenuOnClickOutside);
+    }
+}
+
+// 显示个人中心
+function showUserProfile() {
+    closeUserMenu();
+    
+    if (!currentUser) return;
+    
+    // 获取用户学习进度统计
+    const visitedCount = userProgress.visitedArtifacts.length;
+    const taskCount = userProgress.completedTasks.length;
+    const achievementCount = userProgress.collectedAchievements.length;
+    
+    const modalHTML = `
+        <div class="profile-modal" id="profileModal">
+            <div class="profile-content">
+                <div class="profile-header">
+                    <h2>个人中心</h2>
+                    <button onclick="closeProfileModal()" class="profile-close">&times;</button>
+                </div>
+                <div class="profile-body">
+                    <div class="profile-avatar-large">
+                        ${currentUser.username.charAt(0).toUpperCase()}
+                    </div>
+                    
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">用户名</span>
+                        <span class="profile-info-value">${currentUser.username}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">注册时间</span>
+                        <span class="profile-info-value">${new Date(currentUser.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">上次登录</span>
+                        <span class="profile-info-value">${new Date(currentUser.lastLogin).toLocaleDateString()}</span>
+                    </div>
+                    
+                    <div class="profile-stats">
+                        <div class="profile-stat-item">
+                            <div class="profile-stat-number">${visitedCount}</div>
+                            <div class="profile-stat-label">参观文物</div>
+                        </div>
+                        <div class="profile-stat-item">
+                            <div class="profile-stat-number">${taskCount}</div>
+                            <div class="profile-stat-label">完成任务</div>
+                        </div>
+                        <div class="profile-stat-item">
+                            <div class="profile-stat-number">${achievementCount}</div>
+                            <div class="profile-stat-label">获得成就</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    document.body.style.overflow = 'hidden';
+}
+
+// 关闭个人中心
+function closeProfileModal() {
+    const modal = document.getElementById('profileModal');
+    if (modal) {
+        modal.remove();
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// 关闭用户菜单
+function closeUserMenu() {
+    const menu = document.getElementById('userMenu');
+    if (menu) {
+        menu.style.display = 'none';
+    }
+}
+
+// 显示设置
+function showSettings() {
+    closeUserMenu();
+    alert('设置功能开发中...\n\n后续将支持：\n• 修改密码\n• 头像上传\n• 通知设置');
+}
+
+// 修改原来的 updateUIForLoggedInUser 函数
+function updateUIForLoggedInUser() {
+    const notLoggedIn = document.getElementById('notLoggedIn');
+    const loggedIn = document.getElementById('loggedIn');
+    const displayUsername = document.getElementById('displayUsername');
+    const dropdownUsername = document.getElementById('dropdownUsername');
+    const userInitial = document.getElementById('userInitial');
+    const userPoints = document.getElementById('userPoints');
+    
+    if (currentUser) {
+        if (notLoggedIn) notLoggedIn.style.display = 'none';
+        if (loggedIn) loggedIn.style.display = 'block';
+        
+        // 更新用户名显示
+        if (displayUsername) displayUsername.textContent = currentUser.username;
+        if (dropdownUsername) dropdownUsername.textContent = currentUser.username;
+        if (userInitial) userInitial.textContent = currentUser.username.charAt(0).toUpperCase();
+        
+        // 计算并显示积分（示例：每个文物10分，每个任务20分，每个成就30分）
+        const points = (userProgress.visitedArtifacts.length * 10) + 
+                       (userProgress.completedTasks.length * 20) + 
+                       (userProgress.collectedAchievements.length * 30);
+        if (userPoints) userPoints.textContent = points;
+    } else {
+        if (notLoggedIn) notLoggedIn.style.display = 'flex';
+        if (loggedIn) loggedIn.style.display = 'none';
+    }
+}
 // ============================================
 // 1. 文物数据 - 模拟数据库
 // ============================================
@@ -4512,441 +4950,3 @@ function changeWindowSize(size) {
 
 // 页面加载
 setTimeout(addAIAssistant, 2000);
-// ===== 新增：登录系统代码（添加在这里）=====
-
-// ============================================
-// 用户认证系统
-// ============================================
-
-// 用户数据库（存在localStorage中）
-let users = [];
-
-// 当前登录用户
-let currentUser = null;
-
-// 初始化用户系统
-function initAuthSystem() {
-    // 从本地存储加载用户数据
-    const savedUsers = localStorage.getItem('redMuseumUsers');
-    if (savedUsers) {
-        users = JSON.parse(savedUsers);
-    } else {
-        // 添加默认管理员账号（方便测试）
-        users = [
-            {
-                id: 1,
-                username: 'admin',
-                password: 'admin123',
-                createdAt: new Date().toISOString(),
-                lastLogin: null,
-                progress: {
-                    completedTasks: [],
-                    visitedArtifacts: [],
-                    collectedAchievements: [],
-                    learningHistory: [],
-                    mapLocations: { visited: [] }
-                }
-            },
-            {
-                id: 2,
-                username: 'test',
-                password: 'test123',
-                createdAt: new Date().toISOString(),
-                lastLogin: null,
-                progress: {
-                    completedTasks: [],
-                    visitedArtifacts: [],
-                    collectedAchievements: [],
-                    learningHistory: [],
-                    mapLocations: { visited: [] }
-                }
-            }
-        ];
-        saveUsers();
-    }
-    
-    // 检查是否有记住登录
-    const savedSession = localStorage.getItem('redMuseumSession');
-    if (savedSession) {
-        const session = JSON.parse(savedSession);
-        const user = users.find(u => u.id === session.userId);
-        if (user) {
-            currentUser = user;
-            updateUIForLoggedInUser();
-        }
-    }
-}
-
-// 保存用户数据
-function saveUsers() {
-    localStorage.setItem('redMuseumUsers', JSON.stringify(users));
-}
-
-// 显示登录模态框
-function showAuthModal() {
-    document.getElementById('authModal').style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-}
-
-// 关闭登录模态框
-function closeAuthModal() {
-    document.getElementById('authModal').style.display = 'none';
-    document.body.style.overflow = 'auto';
-}
-
-// 切换登录/注册模式
-function switchAuthMode(mode) {
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
-    const authTitle = document.getElementById('authTitle');
-    const switchBtn = document.getElementById('authSwitchBtn');
-    const switchText = document.getElementById('authSwitchText');
-    
-    if (mode === 'register' || loginForm.style.display !== 'none') {
-        // 切换到注册
-        loginForm.style.display = 'none';
-        registerForm.style.display = 'block';
-        authTitle.textContent = '注册';
-        switchText.textContent = '已有账号？';
-        switchBtn.textContent = '立即登录';
-    } else {
-        // 切换到登录
-        loginForm.style.display = 'block';
-        registerForm.style.display = 'none';
-        authTitle.textContent = '登录';
-        switchText.textContent = '还没有账号？';
-        switchBtn.textContent = '立即注册';
-    }
-}
-
-// 处理登录
-function handleLogin(event) {
-    event.preventDefault();
-    
-    const username = document.getElementById('loginUsername').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    
-    // 查找用户
-    const user = users.find(u => u.username === username && u.password === password);
-    
-    if (user) {
-        // 登录成功
-        currentUser = user;
-        user.lastLogin = new Date().toISOString();
-        saveUsers();
-        
-        // 保存会话
-        localStorage.setItem('redMuseumSession', JSON.stringify({
-            userId: user.id,
-            loginTime: new Date().toISOString()
-        }));
-        
-        // 更新界面
-        updateUIForLoggedInUser();
-        closeAuthModal();
-        
-        // 显示欢迎消息
-        showAuthMessage(`欢迎回来，${user.username}！`, 'success');
-    } else {
-        // 登录失败
-        showAuthMessage('用户名或密码错误', 'error');
-    }
-}
-
-// 处理注册
-function handleRegister(event) {
-    event.preventDefault();
-    
-    const username = document.getElementById('regUsername').value.trim();
-    const password = document.getElementById('regPassword').value;
-    const confirmPassword = document.getElementById('regConfirmPassword').value;
-    
-    // 验证用户名
-    if (username.length < 4 || username.length > 20) {
-        showAuthMessage('用户名必须在4-20个字符之间', 'error');
-        return;
-    }
-    
-    // 验证密码
-    if (password.length < 6 || password.length > 20) {
-        showAuthMessage('密码必须在6-20个字符之间', 'error');
-        return;
-    }
-    
-    // 验证密码一致性
-    if (password !== confirmPassword) {
-        showAuthMessage('两次输入的密码不一致', 'error');
-        return;
-    }
-    
-    // 检查用户名是否已存在
-    if (users.some(u => u.username === username)) {
-        showAuthMessage('用户名已存在', 'error');
-        return;
-    }
-    
-    // 创建新用户
-    const newUser = {
-        id: users.length + 1,
-        username: username,
-        password: password,
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString(),
-        progress: {
-            completedTasks: [],
-            visitedArtifacts: [],
-            collectedAchievements: [],
-            learningHistory: [],
-            mapLocations: { visited: [] }
-        }
-    };
-    
-    users.push(newUser);
-    saveUsers();
-    
-    // 自动登录
-    currentUser = newUser;
-    localStorage.setItem('redMuseumSession', JSON.stringify({
-        userId: newUser.id,
-        loginTime: new Date().toISOString()
-    }));
-    
-    // 更新界面
-    updateUIForLoggedInUser();
-    closeAuthModal();
-    
-    showAuthMessage('注册成功！欢迎加入红色文化学习社区', 'success');
-}
-
-// 退出登录
-function logout() {
-    currentUser = null;
-    localStorage.removeItem('redMuseumSession');
-    
-    // 重置为用户进度
-    location.reload();
-}
-
-// 更新登录后的UI
-function updateUIForLoggedInUser() {
-    const loginBtn = document.getElementById('loginBtn');
-    const userWelcome = document.getElementById('userWelcome');
-    const usernameSpan = document.getElementById('username');
-    
-    if (currentUser && loginBtn && userWelcome && usernameSpan) {
-        loginBtn.style.display = 'none';
-        userWelcome.style.display = 'inline';
-        usernameSpan.textContent = currentUser.username;
-    }
-}
-
-// 显示认证消息
-function showAuthMessage(message, type = 'info') {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `auth-message ${type}`;
-    messageDiv.innerHTML = `
-        <div class="message-content">
-            <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
-            <span>${message}</span>
-        </div>
-    `;
-    
-    document.body.appendChild(messageDiv);
-    
-    setTimeout(() => {
-        messageDiv.style.opacity = '0';
-        setTimeout(() => messageDiv.remove(), 300);
-    }, 3000);
-}
-
-// 添加认证消息样式
-const authMessageStyle = document.createElement('style');
-authMessageStyle.textContent = `
-    .auth-message {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: white;
-        padding: 15px 20px;
-        border-radius: 8px;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-        z-index: 10001;
-        animation: slideInRight 0.3s ease;
-        border-left: 4px solid #b71c1c;
-    }
-    
-    .auth-message.success {
-        border-left-color: #27ae60;
-    }
-    
-    .auth-message.error {
-        border-left-color: #e74c3c;
-    }
-    
-    .message-content {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    @keyframes slideInRight {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-`;
-document.head.appendChild(authMessageStyle);
-
-// 在页面加载时初始化认证系统
-document.addEventListener('DOMContentLoaded', function() {
-    // 延迟执行，确保其他元素已加载
-    setTimeout(() => {
-        initAuthSystem();
-    }, 500);
-});
-// ============================================
-// 美化登录选项的额外功能
-// ============================================
-
-// 切换用户菜单显示/隐藏
-function toggleUserMenu() {
-    const menu = document.getElementById('userMenu');
-    if (menu) {
-        if (menu.style.display === 'none' || menu.style.display === '') {
-            menu.style.display = 'block';
-            // 点击其他地方关闭菜单
-            setTimeout(() => {
-                document.addEventListener('click', closeUserMenuOnClickOutside);
-            }, 100);
-        } else {
-            menu.style.display = 'none';
-        }
-    }
-}
-
-// 点击外部关闭菜单
-function closeUserMenuOnClickOutside(event) {
-    const menu = document.getElementById('userMenu');
-    const profile = document.querySelector('.user-profile');
-    
-    if (menu && profile && !profile.contains(event.target) && !menu.contains(event.target)) {
-        menu.style.display = 'none';
-        document.removeEventListener('click', closeUserMenuOnClickOutside);
-    }
-}
-
-// 显示个人中心
-function showUserProfile() {
-    closeUserMenu();
-    
-    if (!currentUser) return;
-    
-    // 获取用户学习进度统计
-    const visitedCount = userProgress.visitedArtifacts.length;
-    const taskCount = userProgress.completedTasks.length;
-    const achievementCount = userProgress.collectedAchievements.length;
-    
-    const modalHTML = `
-        <div class="profile-modal" id="profileModal">
-            <div class="profile-content">
-                <div class="profile-header">
-                    <h2>个人中心</h2>
-                    <button onclick="closeProfileModal()" class="profile-close">&times;</button>
-                </div>
-                <div class="profile-body">
-                    <div class="profile-avatar-large">
-                        ${currentUser.username.charAt(0).toUpperCase()}
-                    </div>
-                    
-                    <div class="profile-info-item">
-                        <span class="profile-info-label">用户名</span>
-                        <span class="profile-info-value">${currentUser.username}</span>
-                    </div>
-                    <div class="profile-info-item">
-                        <span class="profile-info-label">注册时间</span>
-                        <span class="profile-info-value">${new Date(currentUser.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <div class="profile-info-item">
-                        <span class="profile-info-label">上次登录</span>
-                        <span class="profile-info-value">${new Date(currentUser.lastLogin).toLocaleDateString()}</span>
-                    </div>
-                    
-                    <div class="profile-stats">
-                        <div class="profile-stat-item">
-                            <div class="profile-stat-number">${visitedCount}</div>
-                            <div class="profile-stat-label">参观文物</div>
-                        </div>
-                        <div class="profile-stat-item">
-                            <div class="profile-stat-number">${taskCount}</div>
-                            <div class="profile-stat-label">完成任务</div>
-                        </div>
-                        <div class="profile-stat-item">
-                            <div class="profile-stat-number">${achievementCount}</div>
-                            <div class="profile-stat-label">获得成就</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-    document.body.style.overflow = 'hidden';
-}
-
-// 关闭个人中心
-function closeProfileModal() {
-    const modal = document.getElementById('profileModal');
-    if (modal) {
-        modal.remove();
-        document.body.style.overflow = 'auto';
-    }
-}
-
-// 关闭用户菜单
-function closeUserMenu() {
-    const menu = document.getElementById('userMenu');
-    if (menu) {
-        menu.style.display = 'none';
-    }
-}
-
-// 显示设置
-function showSettings() {
-    closeUserMenu();
-    alert('设置功能开发中...\n\n后续将支持：\n• 修改密码\n• 头像上传\n• 通知设置');
-}
-
-// 修改原来的 updateUIForLoggedInUser 函数
-function updateUIForLoggedInUser() {
-    const notLoggedIn = document.getElementById('notLoggedIn');
-    const loggedIn = document.getElementById('loggedIn');
-    const displayUsername = document.getElementById('displayUsername');
-    const dropdownUsername = document.getElementById('dropdownUsername');
-    const userInitial = document.getElementById('userInitial');
-    const userPoints = document.getElementById('userPoints');
-    
-    if (currentUser) {
-        if (notLoggedIn) notLoggedIn.style.display = 'none';
-        if (loggedIn) loggedIn.style.display = 'block';
-        
-        // 更新用户名显示
-        if (displayUsername) displayUsername.textContent = currentUser.username;
-        if (dropdownUsername) dropdownUsername.textContent = currentUser.username;
-        if (userInitial) userInitial.textContent = currentUser.username.charAt(0).toUpperCase();
-        
-        // 计算并显示积分（示例：每个文物10分，每个任务20分，每个成就30分）
-        const points = (userProgress.visitedArtifacts.length * 10) + 
-                       (userProgress.completedTasks.length * 20) + 
-                       (userProgress.collectedAchievements.length * 30);
-        if (userPoints) userPoints.textContent = points;
-    } else {
-        if (notLoggedIn) notLoggedIn.style.display = 'flex';
-        if (loggedIn) loggedIn.style.display = 'none';
-    }
-}
