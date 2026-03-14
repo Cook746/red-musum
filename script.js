@@ -1758,7 +1758,7 @@ const learningResources = [
         description: "系统介绍中国共产党发展历程的权威读物，适合初学者全面了解党史。",
         source: "中共中央党史和文献研究院",
         duration: "约15小时阅读",
-        url: "#",
+        url: "https://news.cctv.com/special/C19504/01/index.shtml",
         tags: ["党史", "电子书", "入门"],
         collected: false
     },
